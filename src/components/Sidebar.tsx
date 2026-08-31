@@ -2,30 +2,26 @@ import React from 'react';
 import {
   LayoutDashboard,
   BarChart3,
-  Calendar,
-  Truck,
-  MapPin,
   Warehouse,
   Users,
-  Wrench,
   ReceiptText,
-  MessageSquare,
-  Bell,
   Settings,
   ChevronDown,
-  Sparkles,
-  Printer,
-  ShieldAlert,
-  HelpCircle,
-  Zap,
+  ShieldCheck,
+  FileSpreadsheet,
+  CreditCard,
+  X,
+  Plus,
 } from 'lucide-react';
 import { ApsLogo } from './ApsLogo';
 
 export type NavSection =
   | 'billing'
   | 'dashboard'
+  | 'payments'
+  | 'statements'
+  | 'warranties'
   | 'analytics'
-  | 'workorders'
   | 'inventory'
   | 'clients'
   | 'settings';
@@ -33,48 +29,35 @@ export type NavSection =
 interface SidebarProps {
   currentSection: NavSection;
   onNavigate: (section: NavSection) => void;
-  unreadMessages?: number;
-  unreadNotifications?: number;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
-  onQuickLetterhead: () => void;
+  onOpenCompanySettings?: () => void;
+  onNewBill?: () => void;
+  onQuickLetterhead?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentSection,
   onNavigate,
-  unreadMessages = 19,
-  unreadNotifications = 5,
   isOpenMobile = false,
   onCloseMobile,
-  onQuickLetterhead,
+  onOpenCompanySettings,
+  onNewBill,
 }) => {
   const navItems = [
     { id: 'dashboard' as NavSection, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'analytics' as NavSection, label: 'Analytics', icon: BarChart3 },
-    { id: 'workorders' as NavSection, label: 'Work Orders', icon: Truck },
-    { id: 'inventory' as NavSection, label: 'Parts & Catalog', icon: Warehouse },
-    { id: 'clients' as NavSection, label: 'Clients & Stations', icon: Users },
     {
       id: 'billing' as NavSection,
       label: 'Invoices & Billing',
       icon: ReceiptText,
       isPrimary: true,
     },
-    {
-      id: 'messages',
-      label: 'Message',
-      icon: MessageSquare,
-      badge: unreadMessages,
-      isNavDisabled: true,
-    },
-    {
-      id: 'notification',
-      label: 'Notification',
-      icon: Bell,
-      badge: unreadNotifications,
-      isNavDisabled: true,
-    },
+    { id: 'payments' as NavSection, label: 'Payments & Collections', icon: CreditCard },
+    { id: 'statements' as NavSection, label: 'Statement', icon: FileSpreadsheet },
+    { id: 'warranties' as NavSection, label: 'Warranty', icon: ShieldCheck },
+    { id: 'inventory' as NavSection, label: 'Product', icon: Warehouse },
+    { id: 'clients' as NavSection, label: 'Clients', icon: Users },
+    { id: 'analytics' as NavSection, label: 'Analytics', icon: BarChart3 },
     { id: 'settings' as NavSection, label: 'Company Settings', icon: Settings },
   ];
 
@@ -84,23 +67,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 lg:hidden transition-opacity"
+          aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 transition-transform duration-200 ease-in-out shadow-2xl lg:shadow-none overflow-y-auto ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Brand Header & User Profile */}
         <div className="space-y-4">
-          {/* Logo Branding */}
-          <div className="flex items-center gap-2.5 px-2 py-1">
+          {/* Logo Branding & Mobile Close */}
+          <div className="flex items-center justify-between px-2 py-1">
             <ApsLogo size="md" showText={true} />
+            {isOpenMobile && (
+              <button
+                onClick={onCloseMobile}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg lg:hidden transition-colors"
+                aria-label="Close navigation"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
-          {/* User Profile Card matching Image 1 */}
+          {/* User Profile Card */}
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
@@ -127,12 +120,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   id={`nav-${item.id}`}
                   onClick={() => {
-                    if (!item.isNavDisabled && item.id) {
-                      onNavigate(item.id as NavSection);
-                      if (onCloseMobile) onCloseMobile();
-                    }
+                    onNavigate(item.id);
+                    if (onCloseMobile) onCloseMobile();
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-rose-50/80 text-rose-600 font-bold border border-rose-100 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -146,44 +137,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                     <span>{item.label}</span>
                   </div>
-
-                  {item.badge !== undefined && (
-                    <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#ff4d4f] text-white rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}
+
+            {/* + New Bill Action Button (Circular, compact, fixed pop effect in light green) */}
+            {onNewBill && (
+              <div className="pt-3 flex justify-center">
+                <button
+                  id="nav-new-bill-btn"
+                  onClick={() => {
+                    onNewBill();
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  title="Create New Bill / Invoice"
+                  aria-label="Create New Bill / Invoice"
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-300 shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 group"
+                >
+                  <Plus className="w-5 h-5 stroke-[2.5] text-emerald-700 group-hover:rotate-90 transition-transform duration-200" />
+                </button>
+              </div>
+            )}
           </nav>
         </div>
 
-        {/* Bottom Card matching Image 1 "Loving ShipNow Free? Go Pro Today" */}
-        <div className="space-y-3 pt-4">
-          <div className="p-4 rounded-2xl bg-[#171717] text-white space-y-2.5 relative overflow-hidden shadow-md">
-            {/* Subtle background graphic pattern */}
-            <div className="absolute right-0 top-0 w-24 h-24 bg-rose-500/10 rounded-full blur-xl pointer-events-none" />
-
-            <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
-              <span>Official APS Letterhead</span>
-            </div>
-
-            <p className="text-[11px] text-slate-300 leading-snug">
-              Instant print & export vouchers on Agility Power System official pad.
-            </p>
-
-            <button
-              onClick={onQuickLetterhead}
-              className="w-full py-1.5 bg-white hover:bg-slate-100 text-slate-900 rounded-lg text-xs font-bold transition-all shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-            >
-              <Printer className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Print Letterhead</span>
-            </button>
-          </div>
-
-          <div className="px-2 text-[10px] text-slate-400 text-center">
-            Copyright © {new Date().getFullYear()} Agility Power System
+        {/* Clean Sidebar Footer */}
+        <div className="pt-4 border-t border-slate-100 mt-4">
+          <div className="px-2 text-[10px] text-slate-400 text-center font-medium">
+            Agility Power System © {new Date().getFullYear()}
           </div>
         </div>
       </aside>

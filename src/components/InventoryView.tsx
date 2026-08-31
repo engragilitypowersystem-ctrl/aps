@@ -70,10 +70,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <h2 className="text-lg font-bold text-slate-900">
-            Spare Parts & Services Catalog
+            Product
           </h2>
           <p className="text-xs text-slate-500">
-            Preset inventory and engineering services for CNG compressors, gas generators, PLCs, and dispensers.
+            Preset products, spare parts, and engineering services for CNG compressors, gas generators, PLCs, and dispensers.
           </p>
         </div>
 

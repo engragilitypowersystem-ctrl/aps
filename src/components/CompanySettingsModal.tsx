@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Save, Building, Phone, Mail, MapPin, Landmark, Check } from 'lucide-react';
-import { CompanyProfile } from '../types';
+import { X, Save, Building, Phone, Mail, MapPin, Landmark, Check, Printer, FileText, Zap } from 'lucide-react';
+import { CompanyProfile, Invoice } from '../types';
 import { ApsLogo } from './ApsLogo';
 
 interface CompanySettingsModalProps {
@@ -8,6 +8,8 @@ interface CompanySettingsModalProps {
   onClose: () => void;
   company: CompanyProfile;
   onSave: (updated: CompanyProfile) => void;
+  onOpenLetterhead?: (invoice?: Invoice | null) => void;
+  sampleInvoice?: Invoice | null;
 }
 
 export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
@@ -15,11 +17,19 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
   onClose,
   company,
   onSave,
+  onOpenLetterhead,
+  sampleInvoice,
 }) => {
-  if (!isOpen) return null;
-
   const [form, setForm] = useState<CompanyProfile>(company);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setForm(company);
+    }
+  }, [isOpen, company]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +66,54 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+          {/* Official Letterhead Action Card */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 shadow-2xs space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-xs">
+                  <Printer className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                    APS Official Letterhead Pad
+                  </h4>
+                  <p className="text-[11px] text-emerald-800">
+                    Official A4 letterhead with APS logo, header motto, and green bottom address strip.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onOpenLetterhead) onOpenLetterhead(null);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-all active:scale-98"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Blank Letterhead Pad</span>
+              </button>
+
+              {sampleInvoice && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onOpenLetterhead) onOpenLetterhead(sampleInvoice);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-100/60 text-emerald-900 border border-emerald-300 rounded-lg text-xs font-semibold shadow-2xs transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Preview Pad with Invoice</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs font-semibold text-slate-700 block mb-1">
               Company Name
@@ -124,7 +181,7 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({
 
           <div>
             <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Mobile Numbers (Comma separated)
+              Mobile Numbers (Comma separated for Letterhead footer)
             </label>
             <input
               type="text"

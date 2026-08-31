@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search,
-  Plus,
   Printer,
-  FileDown,
-  RefreshCw,
-  SlidersHorizontal,
-  Bell,
   Menu,
-  X,
-  Sparkles,
   CheckCircle2,
-  Share2,
+  Plus,
 } from 'lucide-react';
 import {
   Invoice,
@@ -19,24 +12,32 @@ import {
   CompanyProfile,
   ProductCatalogItem,
   InvoiceStatus,
+  WarrantyRecord,
+  WarrantyClaim,
+  PaymentRecord,
 } from './types';
 import {
   AGILITY_COMPANY,
   INITIAL_CLIENTS,
   INITIAL_INVOICES,
   INITIAL_PRODUCTS,
+  INITIAL_WARRANTIES,
+  INITIAL_PAYMENTS,
 } from './data/initialData';
 import { Sidebar, NavSection } from './components/Sidebar';
 import { HeaderStats } from './components/HeaderStats';
 import { InvoiceList } from './components/InvoiceList';
-import { InvoiceDetailPane } from './components/InvoiceDetailPane';
+import { InvoiceDetailModal } from './components/InvoiceDetailModal';
 import { OfficialLetterheadPad } from './components/OfficialLetterheadPad';
 import { InvoiceModal } from './components/InvoiceModal';
 import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { ClientsView } from './components/ClientsView';
+import { ClientProfileView } from './components/ClientProfileView';
 import { InventoryView } from './components/InventoryView';
 import { AnalyticsView } from './components/AnalyticsView';
-import { WorkOrdersView } from './components/WorkOrdersView';
+import { WarrantyView } from './components/WarrantyView';
+import { StatementView } from './components/StatementView';
+import { PaymentsView } from './components/PaymentsView';
 
 export default function App() {
   // Local storage initialized states
@@ -88,6 +89,30 @@ export default function App() {
     return AGILITY_COMPANY;
   });
 
+  const [warranties, setWarranties] = useState<WarrantyRecord[]>(() => {
+    const saved = localStorage.getItem('aps_warranties');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_WARRANTIES;
+  });
+
+  const [payments, setPayments] = useState<PaymentRecord[]>(() => {
+    const saved = localStorage.getItem('aps_payments');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_PAYMENTS;
+  });
+
   // Active states
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
     invoices[0]?.id || null
@@ -95,9 +120,12 @@ export default function App() {
   const [currentSection, setCurrentSection] = useState<NavSection>('billing');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [currency, setCurrency] = useState<'BDT' | 'USD'>('BDT');
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
 
   // Modals & Views
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [modalInitialClientId, setModalInitialClientId] = useState<string | undefined>(undefined);
   const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [isPadViewOpen, setIsPadViewOpen] = useState(false);
@@ -123,6 +151,14 @@ export default function App() {
     localStorage.setItem('aps_company', JSON.stringify(company));
   }, [company]);
 
+  useEffect(() => {
+    localStorage.setItem('aps_warranties', JSON.stringify(warranties));
+  }, [warranties]);
+
+  useEffect(() => {
+    localStorage.setItem('aps_payments', JSON.stringify(payments));
+  }, [payments]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -133,19 +169,123 @@ export default function App() {
   const selectedInvoice =
     invoices.find((i) => i.id === selectedInvoiceId) || invoices[0] || null;
 
+  // Calculate expiry date helper
+  const calculateExpiry = (start: string, period: string) => {
+    const d = new Date(start);
+    if (period.includes('1 Month')) d.setMonth(d.getMonth() + 1);
+    else if (period.includes('3 Months')) d.setMonth(d.getMonth() + 3);
+    else if (period.includes('6 Months')) d.setMonth(d.getMonth() + 6);
+    else if (period.includes('18 Months')) d.setMonth(d.getMonth() + 18);
+    else if (period.includes('1 Year')) d.setFullYear(d.getFullYear() + 1);
+    else if (period.includes('2 Year')) d.setFullYear(d.getFullYear() + 2);
+    else if (period.includes('3 Year')) d.setFullYear(d.getFullYear() + 3);
+    else d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  // Warranty Handlers
+  const handleAddWarranty = (newWarranty: WarrantyRecord) => {
+    setWarranties((prev) => [newWarranty, ...prev]);
+    showToast(`Warranty Certificate registered for "${newWarranty.productName}"!`);
+  };
+
+  const handleUpdateWarranty = (updated: WarrantyRecord) => {
+    setWarranties((prev) =>
+      prev.map((w) => (w.id === updated.id ? updated : w))
+    );
+    showToast(`Warranty record updated!`);
+  };
+
+  const handleDeleteWarranty = (warrantyId: string) => {
+    setWarranties((prev) => prev.filter((w) => w.id !== warrantyId));
+    showToast('Warranty record removed.');
+  };
+
+  const handleLogClaim = (
+    warrantyId: string,
+    claim: WarrantyClaim,
+    newStatus: 'claimed' | 'active'
+  ) => {
+    setWarranties((prev) =>
+      prev.map((w) => {
+        if (w.id === warrantyId) {
+          const claims = w.claims ? [claim, ...w.claims] : [claim];
+          return {
+            ...w,
+            status: newStatus,
+            claims,
+          };
+        }
+        return w;
+      })
+    );
+    showToast(`Service log recorded for warranty!`);
+  };
+
+  // Payment Handlers
+  const handleAddPayment = (newPayment: PaymentRecord, updateInvoiceStatus?: boolean) => {
+    setPayments((prev) => [newPayment, ...prev]);
+
+    // If linked to an invoice and marked to update invoice status
+    if (updateInvoiceStatus && newPayment.invoiceId) {
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === newPayment.invoiceId ? { ...inv, status: 'paid' as InvoiceStatus } : inv
+        )
+      );
+    }
+
+    showToast(
+      `Payment Receipt "${newPayment.receiptNumber}" (৳${newPayment.amount.toLocaleString()}) recorded!`
+    );
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+    showToast('Payment record removed.');
+  };
+
   // Handlers
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoiceId(invoice.id);
+    setIsDetailModalOpen(true);
   };
 
   const handleOpenCreateInvoice = () => {
     setInvoiceToEdit(null);
+    setModalInitialClientId(undefined);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleCreateInvoiceForClient = (client: Client) => {
+    setInvoiceToEdit(null);
+    setModalInitialClientId(client.id);
     setIsInvoiceModalOpen(true);
   };
 
   const handleOpenEditInvoice = (invoice: Invoice) => {
     setInvoiceToEdit(invoice);
+    setModalInitialClientId(invoice.client.id);
     setIsInvoiceModalOpen(true);
+  };
+
+  const handleUpdateClient = (updatedClient: Client) => {
+    setClients((prev) =>
+      prev.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+    );
+    // Also update viewingClient state if currently viewed
+    if (viewingClient && viewingClient.id === updatedClient.id) {
+      setViewingClient(updatedClient);
+    }
+    // Also update client object on existing invoices
+    setInvoices((prev) =>
+      prev.map((inv) =>
+        inv.client.id === updatedClient.id
+          ? { ...inv, client: updatedClient }
+          : inv
+      )
+    );
+    showToast(`Client "${updatedClient.name}" updated successfully.`);
   };
 
   const handleSaveInvoice = (savedInvoice: Invoice) => {
@@ -156,9 +296,63 @@ export default function App() {
       }
       return [savedInvoice, ...prev];
     });
+
+    // Auto-sync items with warranty into Warranty Registry
+    const warrantyItems = savedInvoice.items.filter(
+      (item) => item.warrantyPeriod && item.warrantyPeriod !== 'None'
+    );
+
+    if (warrantyItems.length > 0) {
+      setWarranties((prev) => {
+        let updated = [...prev];
+        warrantyItems.forEach((item, idx) => {
+          const start = savedInvoice.issueDate || new Date().toISOString().split('T')[0];
+          const exp = calculateExpiry(start, item.warrantyPeriod || '1 Year');
+          const sn = item.serialNumber || `APS-SN-${Math.floor(1000 + Math.random() * 9000)}`;
+
+          // Check if already registered for this invoice and item
+          const existingIdx = updated.findIndex(
+            (w) => w.invoiceId === savedInvoice.id && w.productName === item.description
+          );
+
+          const warrantyObj: WarrantyRecord = {
+            id: existingIdx >= 0 ? updated[existingIdx].id : `war-${Date.now()}-${idx}`,
+            invoiceId: savedInvoice.id,
+            invoiceNumber: savedInvoice.invoiceNumber,
+            refNumber: savedInvoice.refNumber,
+            client: savedInvoice.client,
+            productName: item.description,
+            serialNumber: sn,
+            category: item.category,
+            startDate: start,
+            warrantyPeriod: item.warrantyPeriod || '1 Year',
+            expiryDate: exp,
+            status: 'active',
+            coverageType: 'Full Replacement & Technical Service',
+            notes: `Auto-registered from Invoice #${savedInvoice.invoiceNumber}.`,
+            claims: existingIdx >= 0 ? updated[existingIdx].claims : [],
+            createdAt: new Date().toISOString(),
+          };
+
+          if (existingIdx >= 0) {
+            updated[existingIdx] = warrantyObj;
+          } else {
+            updated = [warrantyObj, ...updated];
+          }
+        });
+        return updated;
+      });
+    }
+
     setSelectedInvoiceId(savedInvoice.id);
     setIsInvoiceModalOpen(false);
-    showToast(`Invoice #${savedInvoice.invoiceNumber} saved successfully!`);
+    showToast(
+      `Invoice #${savedInvoice.invoiceNumber} saved! ${
+        warrantyItems.length > 0
+          ? `(${warrantyItems.length} warranty added to registry)`
+          : ''
+      }`
+    );
   };
 
   const handleDeleteInvoice = (invoiceId: string) => {
@@ -229,7 +423,7 @@ export default function App() {
   };
 
   // If in full Letterhead Pad View
-  if (isPadViewOpen && selectedInvoice) {
+  if (isPadViewOpen) {
     return (
       <OfficialLetterheadPad
         invoice={selectedInvoice}
@@ -246,12 +440,14 @@ export default function App() {
       <Sidebar
         currentSection={currentSection}
         onNavigate={(sec) => {
+          setViewingClient(null);
           if (sec === 'settings') {
             setIsCompanyModalOpen(true);
           } else {
             setCurrentSection(sec);
           }
         }}
+        onNewBill={handleOpenCreateInvoice}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onQuickLetterhead={() => handleOpenLetterhead(selectedInvoice || undefined)}
@@ -270,29 +466,31 @@ export default function App() {
               <Menu className="w-5 h-5" />
             </button>
 
-            <div>
-              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-                {currentSection === 'billing' && 'Invoices & Billing'}
-                {currentSection === 'dashboard' && 'Operations Dashboard'}
-                {currentSection === 'analytics' && 'Billing & Revenue Analytics'}
-                {currentSection === 'workorders' && 'Field Work Orders'}
-                {currentSection === 'inventory' && 'Parts & Services Catalog'}
-                {currentSection === 'clients' && 'Stations & Clients'}
-              </h1>
-              <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5 mt-0.5">
-                <span className="text-slate-400">Dashboard</span>
-                <span>/</span>
-                <span className="text-rose-600 font-medium">
-                  {currentSection === 'billing'
-                    ? 'Invoices & Billing'
-                    : currentSection.charAt(0).toUpperCase() + currentSection.slice(1)}
-                </span>
-              </div>
-            </div>
+            {viewingClient && (
+              <button
+                onClick={() => {
+                  setViewingClient(null);
+                  setCurrentSection('clients');
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+              >
+                <span>← Back to Clients</span>
+              </button>
+            )}
           </div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* + New Bill Quick Header Button */}
+            <button
+              id="header-new-bill-btn"
+              onClick={handleOpenCreateInvoice}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white rounded-lg text-xs font-bold shadow-xs transition-all active:scale-98"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>New Bill</span>
+            </button>
+
             {/* Currency Switcher */}
             <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-xs font-bold text-slate-600 border border-slate-200">
               <button
@@ -338,18 +536,40 @@ export default function App() {
                 <span>Letterhead View</span>
               </button>
             )}
-
-            {/* Notification Bell */}
-            <button className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ff4d4f] rounded-full ring-2 ring-white" />
-            </button>
           </div>
         </header>
 
         {/* Dynamic Scrollable Body Area */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6">
-          {currentSection === 'billing' || currentSection === 'dashboard' ? (
+          {viewingClient ? (
+            <ClientProfileView
+              client={viewingClient}
+              invoices={invoices}
+              company={company}
+              currency={currency}
+              onBack={() => setViewingClient(null)}
+              onOpenInvoice={(inv) => {
+                setSelectedInvoiceId(inv.id);
+                setViewingClient(null);
+                setCurrentSection('billing');
+              }}
+              onOpenLetterhead={(inv) => {
+                handleOpenLetterhead(inv);
+              }}
+              onCreateInvoiceForClient={(cl) => {
+                handleCreateInvoiceForClient(cl);
+              }}
+              onEditInvoice={(inv) => {
+                handleOpenEditInvoice(inv);
+              }}
+              onToggleInvoiceStatus={(invId, st) => {
+                handleToggleStatus(invId, st);
+              }}
+              onUpdateClient={(upd) => {
+                handleUpdateClient(upd);
+              }}
+            />
+          ) : currentSection === 'billing' || currentSection === 'dashboard' ? (
             <>
               {/* 4 Summary Stat KPI Cards matching Image 1 */}
               <HeaderStats
@@ -359,45 +579,74 @@ export default function App() {
                 currency={currency}
               />
 
-              {/* Main Split-Pane Workspace matching Image 1 */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[580px] h-[calc(100vh-270px)]">
-                {/* Left 7 Columns: Invoices Table */}
-                <div className="lg:col-span-7 h-full">
-                  <InvoiceList
-                    invoices={invoices}
-                    selectedInvoiceId={selectedInvoiceId}
-                    onSelectInvoice={handleSelectInvoice}
-                    onNewInvoice={handleOpenCreateInvoice}
-                    onDeleteInvoice={handleDeleteInvoice}
-                    onDuplicateInvoice={handleDuplicateInvoice}
-                    currency={currency}
-                    activeStatusFilter={statusFilter}
-                    onStatusFilterChange={setStatusFilter}
-                  />
-                </div>
-
-                {/* Right 5 Columns: Invoice Details Pane matching Image 1 */}
-                <div className="lg:col-span-5 h-full">
-                  <InvoiceDetailPane
-                    invoice={selectedInvoice}
-                    company={company}
-                    currency={currency}
-                    onEdit={handleOpenEditInvoice}
-                    onToggleStatus={handleToggleStatus}
-                    onOpenLetterheadView={handleOpenLetterhead}
-                    onSendInvoice={handleSendInvoice}
-                  />
-                </div>
+              {/* Full-width Invoices Workspace */}
+              <div className="w-full">
+                <InvoiceList
+                  invoices={invoices}
+                  selectedInvoiceId={selectedInvoiceId}
+                  onSelectInvoice={handleSelectInvoice}
+                  onNewInvoice={handleOpenCreateInvoice}
+                  onDeleteInvoice={handleDeleteInvoice}
+                  onDuplicateInvoice={handleDuplicateInvoice}
+                  currency={currency}
+                  activeStatusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                />
               </div>
             </>
+          ) : currentSection === 'payments' ? (
+            <PaymentsView
+              payments={payments}
+              invoices={invoices}
+              clients={clients}
+              company={company}
+              currency={currency}
+              onAddPayment={handleAddPayment}
+              onDeletePayment={handleDeletePayment}
+              onOpenInvoice={(invId) => {
+                const inv = invoices.find((i) => i.id === invId);
+                if (inv) {
+                  setSelectedInvoiceId(inv.id);
+                  setIsDetailModalOpen(true);
+                }
+              }}
+              onViewClientProfile={(client) => setViewingClient(client)}
+            />
+          ) : currentSection === 'statements' ? (
+            <StatementView
+              invoices={invoices}
+              clients={clients}
+              company={company}
+              currency={currency}
+              onOpenInvoice={(invId) => {
+                const inv = invoices.find((i) => i.id === invId);
+                if (inv) {
+                  setSelectedInvoiceId(inv.id);
+                  setIsDetailModalOpen(true);
+                }
+              }}
+              onViewClientProfile={(client) => setViewingClient(client)}
+            />
           ) : currentSection === 'analytics' ? (
             <AnalyticsView invoices={invoices} currency={currency} />
-          ) : currentSection === 'workorders' ? (
-            <WorkOrdersView
+          ) : currentSection === 'warranties' ? (
+            <WarrantyView
+              warranties={warranties}
+              onAddWarranty={handleAddWarranty}
+              onUpdateWarranty={handleUpdateWarranty}
+              onDeleteWarranty={handleDeleteWarranty}
+              onLogClaim={handleLogClaim}
+              clients={clients}
+              products={products}
               invoices={invoices}
-              onOpenInvoice={(inv) => {
-                setSelectedInvoiceId(inv.id);
-                setCurrentSection('billing');
+              company={company}
+              onViewClientProfile={(client) => setViewingClient(client)}
+              onOpenInvoice={(invId) => {
+                const inv = invoices.find((i) => i.id === invId);
+                if (inv) {
+                  setSelectedInvoiceId(inv.id);
+                  setIsDetailModalOpen(true);
+                }
               }}
             />
           ) : currentSection === 'inventory' ? (
@@ -410,15 +659,33 @@ export default function App() {
             <ClientsView
               clients={clients}
               invoices={invoices}
-              onSelectClientInvoices={(client) => {
-                setCurrentSection('billing');
+              onSelectClient={(client) => {
+                setViewingClient(client);
               }}
               onAddClient={handleAddClient}
+              onCreateInvoiceForClient={(client) => {
+                handleCreateInvoiceForClient(client);
+              }}
               currency={currency}
             />
           ) : null}
         </main>
       </div>
+
+      {/* Invoice Detail Modal (Opens when an invoice or details is clicked) */}
+      <InvoiceDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        invoice={selectedInvoice}
+        company={company}
+        currency={currency}
+        onEdit={handleOpenEditInvoice}
+        onToggleStatus={handleToggleStatus}
+        onOpenLetterheadView={handleOpenLetterhead}
+        onSendInvoice={handleSendInvoice}
+        onViewClientProfile={(client) => setViewingClient(client)}
+        onOpenWarrantyView={() => setCurrentSection('warranties')}
+      />
 
       {/* Invoice Create / Edit Modal */}
       <InvoiceModal
@@ -429,6 +696,7 @@ export default function App() {
         clients={clients}
         products={products}
         currency={currency}
+        initialClientId={modalInitialClientId}
       />
 
       {/* Company Office Settings Modal */}
@@ -437,6 +705,12 @@ export default function App() {
         onClose={() => setIsCompanyModalOpen(false)}
         company={company}
         onSave={handleSaveCompany}
+        onOpenLetterhead={(inv) => {
+          setIsCompanyModalOpen(false);
+          setSelectedInvoiceId(inv ? inv.id : null);
+          setIsPadViewOpen(true);
+        }}
+        sampleInvoice={selectedInvoice || invoices[0] || null}
       />
 
       {/* Toast Notification */}

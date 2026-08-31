@@ -8,6 +8,39 @@ export interface InvoiceItem {
   quantity: number;
   unit?: string; // 'Pcs', 'Set', 'Lot', 'Hours', 'Job'
   amount: number;
+  warrantyPeriod?: string; // e.g. '6 Months', '1 Year', '2 Years', '3 Months', 'None'
+  serialNumber?: string; // e.g. 'APS-SN-9921', 'MTR-2026-X1'
+  warrantyExpiryDate?: string; // YYYY-MM-DD
+}
+
+export type WarrantyStatus = 'active' | 'expiring_soon' | 'expired' | 'claimed';
+
+export interface WarrantyClaim {
+  id: string;
+  date: string;
+  issueReported: string;
+  actionTaken: string;
+  status: 'in_progress' | 'resolved' | 'replaced';
+  technicianName?: string;
+}
+
+export interface WarrantyRecord {
+  id: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  refNumber?: string;
+  client: Client;
+  productName: string;
+  serialNumber?: string;
+  category: string;
+  startDate: string; // YYYY-MM-DD
+  warrantyPeriod: string; // e.g. '6 Months', '1 Year', '2 Years'
+  expiryDate: string; // YYYY-MM-DD
+  status: WarrantyStatus;
+  notes?: string;
+  coverageType?: string; // 'Full Replacement', 'Parts & Service', 'Service Only'
+  claims?: WarrantyClaim[];
+  createdAt: string;
 }
 
 export interface Client {
@@ -72,4 +105,29 @@ export interface ProductCatalogItem {
   defaultPrice: number;
   unit: string;
   description?: string;
+}
+
+export type PaymentMethod =
+  | 'Bank Transfer'
+  | 'Cheque'
+  | 'Cash'
+  | 'bKash / Nagad'
+  | 'Online / Card';
+
+export interface PaymentRecord {
+  id: string;
+  receiptNumber: string; // e.g. "REC-2026-001"
+  clientId: string;
+  client: Client;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  refNumber?: string;
+  amount: number;
+  paymentDate: string; // "YYYY-MM-DD"
+  paymentMethod: PaymentMethod;
+  referenceNumber?: string; // Cheque No, Bank TXN ID, bKash TrxID
+  bankName?: string;
+  receivedBy?: string; // Officer or Engineer
+  notes?: string;
+  createdAt: string;
 }

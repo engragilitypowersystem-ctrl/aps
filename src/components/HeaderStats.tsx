@@ -66,7 +66,7 @@ export const HeaderStats: React.FC<HeaderStatsProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         const isSelected = activeFilter === stat.id;
@@ -76,28 +76,28 @@ export const HeaderStats: React.FC<HeaderStatsProps> = ({
             key={stat.id}
             id={`stat-card-${stat.id}`}
             onClick={() => onFilterChange(isSelected ? 'all' : stat.id)}
-            className={`flex items-center gap-4 p-4 rounded-2xl bg-white transition-all text-left border ${
+            className={`flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white transition-all text-left border ${
               isSelected
                 ? 'border-rose-400 ring-2 ring-rose-100 shadow-sm'
-                : 'border-slate-100 hover:border-slate-200 hover:shadow-xs'
+                : 'border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
             }`}
           >
             {/* Red / Coral Icon rounded container matching Image 1 */}
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg} shadow-xs`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg} shadow-xs`}
             >
-              <Icon className="w-6 h-6 stroke-[2.2]" />
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-0.5">
+              <div className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate mb-0.5">
                 {stat.label}
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-base sm:text-xl xl:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
                 {formatShortCurrency(stat.amount, currency)}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                <span>from</span>
+              <div className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 truncate">
+                <span className="hidden sm:inline">from</span>
                 <span className={`font-semibold ${stat.badgeColor}`}>
                   {stat.count} {stat.count === 1 ? 'Invoice' : 'Invoices'}
                 </span>

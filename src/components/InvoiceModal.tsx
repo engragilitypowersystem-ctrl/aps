@@ -8,6 +8,7 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Invoice,
@@ -26,6 +27,7 @@ interface InvoiceModalProps {
   clients: Client[];
   products: ProductCatalogItem[];
   currency: 'BDT' | 'USD';
+  initialClientId?: string;
 }
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({
@@ -36,9 +38,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   clients,
   products,
   currency,
+  initialClientId,
 }) => {
-  if (!isOpen) return null;
-
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [invoiceNumber, setInvoiceNumber] = useState<string>('');
   const [refNumber, setRefNumber] = useState<string>('');
@@ -84,7 +85,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       const randomRef = Math.floor(1000000 + Math.random() * 9000000);
 
-      setSelectedClientId(clients[0]?.id || '');
+      setSelectedClientId(initialClientId || clients[0]?.id || '');
       setInvoiceNumber(`INV-${randomNum}`);
       setRefNumber(`#SH${randomRef}`);
       setIssueDate(todayStr);
@@ -229,6 +230,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
     onSave(savedInvoice);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
@@ -417,106 +420,145 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 {items.map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className="p-2 grid grid-cols-12 gap-2 items-center text-xs"
+                    className="p-2.5 space-y-2 hover:bg-slate-50/50 rounded-lg transition-colors"
                   >
-                    {/* Item Description & Quick Preset Picker */}
-                    <div className="col-span-5 sm:col-span-4 space-y-1">
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleCatalogSelect(idx, e.target.value);
-                          }
-                        }}
-                        className="w-full text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"
-                      >
-                        <option value="">-- Pick from APS Catalog --</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (৳{p.defaultPrice.toLocaleString()})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) =>
-                          handleItemChange(idx, 'description', e.target.value)
-                        }
-                        placeholder="Item description..."
-                        required
-                        className="w-full text-xs px-2 py-1 bg-white border border-slate-200 rounded focus:ring-1 focus:ring-rose-400"
-                      />
-                    </div>
-
-                    {/* Category */}
-                    <div className="col-span-3 hidden sm:block">
-                      <select
-                        value={item.category}
-                        onChange={(e) =>
-                          handleItemChange(idx, 'category', e.target.value)
-                        }
-                        className="w-full text-[11px] px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-700 truncate"
-                      >
-                        <option value="CNG Compressor Spare Sales & Service">
-                          CNG Compressor
-                        </option>
-                        <option value="Gas Ganarators Spare Parts Sales & Service">
-                          Gas Generator
-                        </option>
-                        <option value="PLC Programming Troubleshoot">
-                          PLC Automation
-                        </option>
-                        <option value="Dispenser Controller Sales Service">
-                          Dispenser Controller
-                        </option>
-                        <option value="LPG Dispenser Sales Service">
-                          LPG Dispenser
-                        </option>
-                      </select>
-                    </div>
-
-                    {/* Unit Price */}
-                    <div className="col-span-3 sm:col-span-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.unitPrice}
-                        onChange={(e) =>
-                          handleItemChange(idx, 'unitPrice', Number(e.target.value))
-                        }
-                        required
-                        className="w-full text-xs px-2 py-1 bg-white border border-slate-200 rounded text-right font-mono"
-                      />
-                    </div>
-
-                    {/* Qty & Unit */}
-                    <div className="col-span-2 sm:col-span-1 flex items-center gap-1">
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleItemChange(idx, 'quantity', Number(e.target.value))
-                        }
-                        required
-                        className="w-full text-xs px-1.5 py-1 bg-white border border-slate-200 rounded text-center font-mono"
-                      />
-                    </div>
-
-                    {/* Total & Remove */}
-                    <div className="col-span-2 sm:col-span-2 flex items-center justify-end gap-1.5">
-                      <span className="font-semibold text-slate-900 font-mono text-xs truncate">
-                        {formatCurrency(item.amount, currency)}
-                      </span>
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                    <div className="grid grid-cols-12 gap-2 items-center text-xs">
+                      {/* Item Description & Quick Preset Picker */}
+                      <div className="col-span-5 sm:col-span-4 space-y-1">
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleCatalogSelect(idx, e.target.value);
+                            }
+                          }}
+                          className="w-full text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                          <option value="">-- Pick from APS Catalog --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} (৳{p.defaultPrice.toLocaleString()})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'description', e.target.value)
+                          }
+                          placeholder="Item description..."
+                          required
+                          className="w-full text-xs px-2 py-1 bg-white border border-slate-200 rounded focus:ring-1 focus:ring-rose-400"
+                        />
+                      </div>
+
+                      {/* Category */}
+                      <div className="col-span-3 hidden sm:block">
+                        <select
+                          value={item.category}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'category', e.target.value)
+                          }
+                          className="w-full text-[11px] px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-700 truncate"
+                        >
+                          <option value="CNG Compressor Spare Sales & Service">
+                            CNG Compressor
+                          </option>
+                          <option value="Gas Ganarators Spare Parts Sales & Service">
+                            Gas Generator
+                          </option>
+                          <option value="PLC Programming Troubleshoot">
+                            PLC Automation
+                          </option>
+                          <option value="Dispenser Controller Sales Service">
+                            Dispenser Controller
+                          </option>
+                          <option value="LPG Dispenser Sales Service">
+                            LPG Dispenser
+                          </option>
+                        </select>
+                      </div>
+
+                      {/* Unit Price */}
+                      <div className="col-span-3 sm:col-span-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.unitPrice}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'unitPrice', Number(e.target.value))
+                          }
+                          required
+                          className="w-full text-xs px-2 py-1 bg-white border border-slate-200 rounded text-right font-mono"
+                        />
+                      </div>
+
+                      {/* Qty & Unit */}
+                      <div className="col-span-2 sm:col-span-1 flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'quantity', Number(e.target.value))
+                          }
+                          required
+                          className="w-full text-xs px-1.5 py-1 bg-white border border-slate-200 rounded text-center font-mono"
+                        />
+                      </div>
+
+                      {/* Total & Remove */}
+                      <div className="col-span-2 sm:col-span-2 flex items-center justify-end gap-1.5">
+                        <span className="font-semibold text-slate-900 font-mono text-xs truncate">
+                          {formatCurrency(item.amount, currency)}
+                        </span>
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Warranty & Serial Sub-row */}
+                    <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-slate-100/70 text-[11px] bg-slate-50/50 px-2 py-1 rounded">
+                      <div className="flex items-center gap-1.5 text-slate-600">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="font-semibold text-slate-700">Warranty:</span>
+                        <select
+                          value={item.warrantyPeriod || 'None'}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'warrantyPeriod', e.target.value)
+                          }
+                          className="text-[11px] px-2 py-0.5 bg-white border border-slate-200 rounded font-medium text-slate-800"
+                        >
+                          <option value="None">No Warranty</option>
+                          <option value="1 Month">1 Month</option>
+                          <option value="3 Months">3 Months</option>
+                          <option value="6 Months">6 Months</option>
+                          <option value="1 Year">1 Year Replacement & Service</option>
+                          <option value="18 Months">18 Months</option>
+                          <option value="2 Years">2 Years</option>
+                          <option value="3 Years">3 Years</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-slate-600">
+                        <span className="text-slate-500">Serial/Model #:</span>
+                        <input
+                          type="text"
+                          placeholder="e.g. APS-SN-9982 (Optional)"
+                          value={item.serialNumber || ''}
+                          onChange={(e) =>
+                            handleItemChange(idx, 'serialNumber', e.target.value)
+                          }
+                          className="text-[11px] px-2 py-0.5 bg-white border border-slate-200 rounded w-44 font-mono text-slate-800"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

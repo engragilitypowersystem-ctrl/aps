@@ -11,6 +11,7 @@ import {
   ExternalLink,
   CheckSquare,
   Square,
+  ChevronRight,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -183,8 +184,8 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
         ))}
       </div>
 
-      {/* Invoices Table */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Invoices Table with Horizontal Scroll Support */}
+      <div className="flex-1 overflow-y-auto overflow-x-auto">
         {sortedInvoices.length === 0 ? (
           <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center">
             <FileText className="w-10 h-10 stroke-[1.5] text-slate-300 mb-2" />
@@ -194,7 +195,7 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
             </p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs border-collapse min-w-[620px] lg:min-w-full">
             <thead className="bg-slate-50/80 sticky top-0 z-10 text-[11px] font-semibold text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="py-2.5 pl-4 pr-2 w-8">
@@ -247,7 +248,8 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
                     <span className="text-slate-300">↕</span>
                   </div>
                 </th>
-                <th className="py-2.5 px-4 text-center">Status</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 pr-4 pl-2 text-right">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -262,8 +264,8 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
                     onClick={() => onSelectInvoice(inv)}
                     className={`cursor-pointer transition-colors group ${
                       isSelected
-                        ? 'bg-rose-50/70 hover:bg-rose-50 text-slate-900 font-medium'
-                        : 'hover:bg-slate-50/80 text-slate-700'
+                        ? 'bg-rose-50/80 hover:bg-rose-50 text-slate-900 font-medium'
+                        : 'hover:bg-slate-50/90 text-slate-700'
                     }`}
                   >
                     {/* Checkbox */}
@@ -329,8 +331,22 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({
                     </td>
 
                     {/* Status */}
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
                       {getStatusBadge(inv.status)}
+                    </td>
+
+                    {/* View Details Action */}
+                    <td className="py-3 pr-4 pl-2 text-right whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all ${
+                          isSelected
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 group-hover:border-rose-300 group-hover:text-rose-600'
+                        }`}
+                      >
+                        <span>Details</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
                     </td>
                   </tr>
                 );

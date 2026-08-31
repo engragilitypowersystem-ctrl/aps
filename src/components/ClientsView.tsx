@@ -6,16 +6,18 @@ import { formatCurrency } from '../utils/formatters';
 interface ClientsViewProps {
   clients: Client[];
   invoices: Invoice[];
-  onSelectClientInvoices: (client: Client) => void;
+  onSelectClient: (client: Client) => void;
   onAddClient: (newClient: Client) => void;
+  onCreateInvoiceForClient?: (client: Client) => void;
   currency: 'BDT' | 'USD';
 }
 
 export const ClientsView: React.FC<ClientsViewProps> = ({
   clients,
   invoices,
-  onSelectClientInvoices,
+  onSelectClient,
   onAddClient,
+  onCreateInvoiceForClient,
   currency,
 }) => {
   const [search, setSearch] = useState('');
@@ -106,11 +108,12 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           return (
             <div
               key={client.id}
-              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-rose-200 transition-all flex flex-col justify-between"
+              onClick={() => onSelectClient(client)}
+              className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 group-hover:bg-rose-50 group-hover:text-rose-600 group-hover:border-rose-200 flex items-center justify-center font-bold text-sm transition-colors">
                     {client.name.slice(0, 2).toUpperCase()}
                   </div>
                   {client.industry && (
@@ -120,7 +123,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   )}
                 </div>
 
-                <h3 className="text-sm font-bold text-slate-900 line-clamp-1">
+                <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
                   {client.name}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -146,17 +149,21 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
               {/* Bottom stats & action */}
               <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                 <div>
-                  <div className="text-[10px] text-slate-400">Total Billed</div>
-                  <div className="font-bold text-slate-900">
+                  <div className="text-[10px] text-slate-400">Total Billed ({clientInvoices.length} bills)</div>
+                  <div className="font-bold text-slate-900 font-mono">
                     {formatCurrency(totalBilled, currency)}
                   </div>
                 </div>
 
                 <button
-                  onClick={() => onSelectClientInvoices(client)}
-                  className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg transition-colors"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectClient(client);
+                  }}
+                  className="flex items-center gap-1 text-xs font-semibold text-rose-600 group-hover:text-white group-hover:bg-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg transition-all"
                 >
-                  <span>{clientInvoices.length} Invoices</span>
+                  <span>View All Bills</span>
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
