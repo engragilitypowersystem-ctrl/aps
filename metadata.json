@@ -1,0 +1,7 @@
+{
+  "name": "Agility Power System - Billing & Invoice Management",
+  "description": "Professional billing, invoicing, and pad letterhead management system for Agility Power System (CNG, Compressor, Generator & Automation Spare Parts).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
